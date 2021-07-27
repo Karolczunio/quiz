@@ -1,3 +1,6 @@
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.Scanner;
 
 public class App {
@@ -52,7 +55,7 @@ public class App {
      * each time checking for a validity of a given line and asking again for the same line if it was incorrect
      *
      * @param numberOfItems number of lines to ask a user for
-     * @return an array of String objects containing lines with questions and answer in a correct format
+     * @return an array of String objects containing lines with questions and answers in a correct format
      */
     static String[] getQuestionsAndAnswers(int numberOfItems) {
         if (numberOfItems <= 0) {
@@ -63,6 +66,46 @@ public class App {
             questionsAndAnswers[i] = getQuestionWithAnswers(i + 1);
         }
         return questionsAndAnswers;
+    }
+
+    /**
+     * The method counts number of lines in a file specified by filename parameter
+     *
+     * @param filename name of the file
+     * @return number of lines in a file
+     * @throws FileNotFoundException when the file was not found
+     */
+    static int getLineCount(String filename) throws FileNotFoundException {
+        int count = 0;
+        Scanner input = new Scanner(new File(filename));
+        while (input.hasNextLine()) {
+            input.nextLine();
+            count++;
+        }
+        input.close();
+        return count;
+    }
+
+    /**
+     * The method loads questions from a text file specified as parameter
+     *
+     * @param filename name of the file to read questions from
+     * @return an array of String objects containing lines with questions and answers in a correct format
+     * @throws IOException when file was not found or file format was incorrect
+     */
+    static String[] getQuestionsAndAnswers(String filename) throws IOException {
+        String[] questionAndAnswers = new String[getLineCount(filename)];
+        Scanner input = new Scanner(new File(filename));
+        String line;
+        for (int i = 0; input.hasNextLine(); i++) {
+            line = input.nextLine();
+            if (!isQuestionWithAnswersCorrect(line)) {
+                throw new IOException("Incorrect line in the file: " + filename + " Line number: " + (i + 1));
+            }
+            questionAndAnswers[i] = line;
+        }
+        input.close();
+        return questionAndAnswers;
     }
 
     /**
@@ -123,11 +166,8 @@ public class App {
      *
      * @param args command line arguments
      */
-    public static void main(String[] args) {
-        final int numberOfQuestions = 5;
-        System.out.println("Enter " + numberOfQuestions + " lines containg questions and 3 answers to each of them.");
-        System.out.println();
-        String[] items = getQuestionsAndAnswers(numberOfQuestions);
+    public static void main(String[] args) throws IOException {
+        String[] items = getQuestionsAndAnswers("files/questions");
         makeAQuiz(items);
     }
 }
