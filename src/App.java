@@ -1,16 +1,20 @@
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.Random;
 import java.util.Scanner;
 
 public class App {
     /*
-    The user enters certain number of lines of text.
-    All entered lines should be collected in an array.
-    Each line should look like this: The capital city of Poland?;Warsaw-YES;Szczecin-NO;Cracow-NO
-    After taking all answers and questions in a form presented above
-    the program asks user questions he or she previously entered
-    In the end program displays the score of the user.
+    The program displays main menu with options to start a quiz or quit
+    After choosing to start a quiz the user is presented with categories
+    to choose from. After choosing a category the program loads
+    questions with answers from a text file and randomly chooses 5 of those
+    and then makes a quiz out of them allowing user to choose one of 3
+    possible answers. Then it tells the user if the answer
+    he or she gave was correct or not. After going through all the questions in a quiz
+    the program returns to the main menu. To close the program the user must choose the option
+    to quit from the main menu.
     */
 
 
@@ -75,6 +79,8 @@ public class App {
      * @return number of lines in a file
      * @throws FileNotFoundException when the file was not found
      */
+    // TODO na spotkaniu o wyjatkach powiem dlaczego nie daje throws w naglowku metody
+    // TODO bedziemy jeszcze uczyc sie jak prawidlowo pobierac dane z pliku
     static int getLineCount(String filename) throws FileNotFoundException {
         int count = 0;
         Scanner input = new Scanner(new File(filename));
@@ -125,22 +131,18 @@ public class App {
             correctnessOfAnswers[i - 1] = tokens[i].matches(".*-YES");
         }
         System.out.println((numberOfQuestion + 1) + ". " + tokens[0]);
-        System.out.println("a) " + tokens[1].replaceFirst("(-YES|-NO)", ""));
-        System.out.println("b) " + tokens[2].replaceFirst("(-YES|-NO)", ""));
-        System.out.println("c) " + tokens[3].replaceFirst("(-YES|-NO)", ""));
+        for (int i = 0; i < 3; i++) {
+            System.out.println((char)('a' + i) + ") " + tokens[i + 1].replaceFirst("(-YES|-NO)", ""));
+        }
         int index;
         String option;
         do {
             option = getExpression("Write a, b or c and press enter:");
             index = switch (option.toLowerCase()) {
-                case "a":
-                    yield 0;
-                case "b":
-                    yield 1;
-                case "c":
-                    yield 2;
-                default:
-                    yield -1;
+                case "a" -> 0;
+                case "b" -> 1;
+                case "c" -> 2;
+                default -> -1;
             };
         } while (index < 0);
         System.out.println((correctnessOfAnswers[index]) ? "Correct Answer" : "Incorrect Answer");
@@ -162,12 +164,167 @@ public class App {
     }
 
     /**
+     * The method displays main menu to a user.
+     * Then it prompts the user to enter a character
+     * representing one of the options if it's none
+     * of the options it prompts a user again
+     *
+     * @return false if user chooses to quit true otherwise
+     * @throws IOException when one of the used files
+     *                     does not exist or it has errors
+     */
+    static boolean makeInteractiveMainMenu() throws IOException {
+        System.out.println("s) start");
+        System.out.println("q) quit");
+        boolean passed;
+        boolean running = true;
+        String[] questions;
+        do {
+            String option = getExpression("Write s or q and press enter:");
+            switch (option) {
+                case "s" -> {
+                    passed = true;
+                    questions = makeInteractiveCategoryMenu();
+                    makeAQuiz(questions);
+                }
+                case "q" -> {
+                    passed = true;
+                    running = false;
+                }
+                default -> passed = false;
+            }
+        } while (!passed);
+        return running;
+    }
+
+    /**
+     * The method displays category menu to a user.
+     * Then it prompts the user to enter a character
+     * representing one of the options if it's none
+     * of the options it prompts a user again
+     *
+     * @return an array of Strings with question and answers
+     * @throws IOException when one of the used files
+     *                     does not exist or it has errors
+     */
+    static String[] makeInteractiveCategoryMenu() throws IOException {
+        System.out.println("Categories:");
+        System.out.println("a) film");
+        System.out.println("b) geography");
+        System.out.println("c) history");
+        System.out.println("d) science");
+        boolean passed = true;
+        String[] items;
+        do {
+            String option = getExpression("Write a, b, c or d and press enter:");
+            final int numberOfQuestions = 5;
+            switch (option) {
+                case "a" -> items = getRandomSubArray(getQuestionsAndAnswers("files/film"), numberOfQuestions);
+                case "b" -> items = getRandomSubArray(getQuestionsAndAnswers("files/geography"), numberOfQuestions);
+                case "c" -> items = getRandomSubArray(getQuestionsAndAnswers("files/history"), numberOfQuestions);
+                case "d" -> items = getRandomSubArray(getQuestionsAndAnswers("files/science"), numberOfQuestions);
+                default -> {
+                    items = null;
+                    passed = false;
+                }
+            }
+        } while (!passed);
+        return items;
+    }
+
+    /**
+     * The method runs a program allowing you to take quizes,
+     * choose categories and quit the program
+     *
+     * @throws IOException when one of the used files
+     *                     does not exist or it has errors
+     */
+    public static void runQuizWithMenuAndCategories() throws IOException {
+        boolean going = true;
+        while (going) {
+            going = makeInteractiveMainMenu();
+        }
+    }
+
+    /**
+     * The method checks if array numbers contains element target at or before given index
+     *
+     * @param numbers integer array to be checked
+     * @param target  integer looked for in an array
+     * @param index   index in an array at which and before which array is checked to contain target element
+     * @return true if array contains target at or before index
+     */
+    private static boolean isContainedInAnArray(int[] numbers, int target, int index) {
+        if (numbers == null || numbers.length == 0)
+            throw new IllegalArgumentException("Wrong array argument");
+        if (index < 0 || index >= numbers.length)
+            throw new IllegalArgumentException("Wrong index");
+        for (int i = 0; i <= index; i++) {
+            if (numbers[i] == target) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * The method creates an array of size given by newArraySize with indexes choosen randomly
+     * from those that would be present in array of size given by oldArraySize
+     *
+     * @param oldArraySize size of an array which indexes should be present in created array
+     * @param newArraySize size of a newly created array
+     * @return an array of indexes
+     */
+    private static int[] getArrayOfRandomIndexes(int oldArraySize, int newArraySize) {
+        if (oldArraySize <= 0)
+            throw new IllegalArgumentException("oldArraySize must be a positive Integer");
+
+        if (newArraySize <= 0)
+            throw new IllegalArgumentException("newArraySize must be a positive Integer");
+
+        if (newArraySize > oldArraySize)
+            throw new IllegalArgumentException("newArraySize must be less or equal to oldArraySize");
+
+        Random random = new Random();
+        int[] indexes = new int[newArraySize];
+        indexes[0] = random.nextInt(oldArraySize);
+        int temp;
+        for (int i = 1; i < newArraySize; i++) {
+            do {
+                temp = random.nextInt(oldArraySize);
+            } while (isContainedInAnArray(indexes, temp, i - 1));
+            indexes[i] = temp;
+        }
+        return indexes;
+    }
+
+    /**
+     * The method creates String array of a given size from a given larger String array
+     * with elements choosen randomly from a given array
+     *
+     * @param array   source array
+     * @param newSize size of the returned array
+     * @return array of Strings chosed randomly from a larger array
+     */
+    static String[] getRandomSubArray(String[] array, int newSize) {
+        if (array == null || array.length == 0)
+            throw new IllegalArgumentException("Wrong array argument");
+        if (newSize > array.length)
+            throw new IllegalArgumentException("newSize must be less or equal to the length of an array");
+        int[] indexes = getArrayOfRandomIndexes(array.length, newSize);
+        String[] result = new String[indexes.length];
+        for (int i = 0; i < indexes.length; i++) {
+            result[i] = array[indexes[i]];
+        }
+        return result;
+    }
+
+    /**
      * The main method of the program
      *
      * @param args command line arguments
      */
     public static void main(String[] args) throws IOException {
-        String[] items = getQuestionsAndAnswers("files/questions");
-        makeAQuiz(items);
+        runQuizWithMenuAndCategories();
     }
 }
