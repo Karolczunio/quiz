@@ -1,6 +1,4 @@
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 import java.util.Random;
 import java.util.Scanner;
 
@@ -77,18 +75,20 @@ public class App {
      *
      * @param filename name of the file
      * @return number of lines in a file
-     * @throws FileNotFoundException when the file was not found
      */
-    // TODO na spotkaniu o wyjatkach powiem dlaczego nie daje throws w naglowku metody
-    // TODO bedziemy jeszcze uczyc sie jak prawidlowo pobierac dane z pliku
-    static int getLineCount(String filename) throws FileNotFoundException {
+    static int getLineCount(String filename) {
+        if (filename == null)
+            throw new IllegalArgumentException("Filename is null");
         int count = 0;
-        Scanner input = new Scanner(new File(filename));
-        while (input.hasNextLine()) {
-            input.nextLine();
-            count++;
+        try(Scanner input = new Scanner(new File(filename))) {
+            while (input.hasNextLine()) {
+                input.nextLine();
+                count++;
+            }
         }
-        input.close();
+        catch (Exception e){
+            throw new IllegalStateException(e.getMessage());
+        }
         return count;
     }
 
@@ -97,20 +97,25 @@ public class App {
      *
      * @param filename name of the file to read questions from
      * @return an array of String objects containing lines with questions and answers in a correct format
-     * @throws IOException when file was not found or file format was incorrect
      */
-    static String[] getQuestionsAndAnswers(String filename) throws IOException {
+    static String[] getQuestionsAndAnswers(String filename) {
+        if (filename == null)
+            throw new IllegalArgumentException("Filename is null");
+
         String[] questionAndAnswers = new String[getLineCount(filename)];
-        Scanner input = new Scanner(new File(filename));
-        String line;
-        for (int i = 0; input.hasNextLine(); i++) {
-            line = input.nextLine();
-            if (!isQuestionWithAnswersCorrect(line)) {
-                throw new IOException("Incorrect line in the file: " + filename + " Line number: " + (i + 1));
-            }
-            questionAndAnswers[i] = line;
+        try(Scanner input = new Scanner(new File(filename))) {
+            String line;
+            for (int i = 0; input.hasNextLine(); i++) {
+                line = input.nextLine();
+                if (!isQuestionWithAnswersCorrect(line)) {
+                    throw new IllegalStateException("Incorrect line in the file: " + filename + " Line number: " + (i + 1));
+                }
+                questionAndAnswers[i] = line;
         }
-        input.close();
+        }
+        catch (Exception e){
+            throw new IllegalStateException(e.getMessage());
+        }
         return questionAndAnswers;
     }
 
@@ -170,10 +175,8 @@ public class App {
      * of the options it prompts a user again
      *
      * @return false if user chooses to quit true otherwise
-     * @throws IOException when one of the used files
-     *                     does not exist or it has errors
      */
-    static boolean makeInteractiveMainMenu() throws IOException {
+    static boolean makeInteractiveMainMenu() {
         System.out.println("s) start");
         System.out.println("q) quit");
         boolean passed;
@@ -204,10 +207,8 @@ public class App {
      * of the options it prompts a user again
      *
      * @return an array of Strings with question and answers
-     * @throws IOException when one of the used files
-     *                     does not exist or it has errors
      */
-    static String[] makeInteractiveCategoryMenu() throws IOException {
+    static String[] makeInteractiveCategoryMenu() {
         System.out.println("Categories:");
         System.out.println("a) film");
         System.out.println("b) geography");
@@ -236,10 +237,8 @@ public class App {
      * The method runs a program allowing you to take quizes,
      * choose categories and quit the program
      *
-     * @throws IOException when one of the used files
-     *                     does not exist or it has errors
      */
-    public static void runQuizWithMenuAndCategories() throws IOException {
+    public static void runQuizWithMenuAndCategories() {
         boolean going = true;
         while (going) {
             going = makeInteractiveMainMenu();
@@ -324,7 +323,7 @@ public class App {
      *
      * @param args command line arguments
      */
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
         runQuizWithMenuAndCategories();
     }
 }
